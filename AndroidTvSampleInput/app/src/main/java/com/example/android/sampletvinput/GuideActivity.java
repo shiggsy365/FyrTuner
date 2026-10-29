@@ -104,6 +104,7 @@ public class GuideActivity extends Activity {
 
     private ExoPlayer mPreviewPlayer;
     private long mPreviewChannelId = -1;
+    private int mPreviewSource;
 
     private final Runnable mTick = new Runnable() {
         @Override
@@ -529,10 +530,29 @@ public class GuideActivity extends Activity {
     private void startPreview() {
         if (isFinishing() || mChannels.isEmpty()) return;
         GuideData.Channel channel = mChannels.get(mRow);
-        String url = Sources.streamUrl(this, channel.streams.get(0));
+        int streamId = channel.streams.get(0);
+        String url = Sources.streamUrl(this, streamId);
         if (url == null) return;
         stopPreview();
-        mPreviewChannelId = channel.id;
+        long channelId = channel.id;
+        mPreviewChannelId = channelId;
+        // A preview mustn't take an account's only connection from another TV either.
+        int source = Sources.sourceOf(streamId);
+        mExecutor.execute(() -> {
+            boolean busy = Connections.busy(getApplicationContext(), source);
+            runOnUiThread(() -> {
+                if (busy || isFinishing() || mPreviewChannelId != channelId
+                        || mPreviewPlayer != null) {
+                    return;
+                }
+                playPreview(url, source);
+            });
+        });
+    }
+
+    private void playPreview(String url, int source) {
+        mPreviewSource = source;
+        Connections.using(source);
         DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory()
                 .setAllowCrossProtocolRedirects(true);
         mPreviewPlayer = new ExoPlayer.Builder(this)
@@ -558,6 +578,7 @@ public class GuideActivity extends Activity {
             mPreview.setPlayer(null);
             mPreviewPlayer.release();
             mPreviewPlayer = null;
+            Connections.released(mPreviewSource);
         }
         mPreviewChannelId = -1;
     }

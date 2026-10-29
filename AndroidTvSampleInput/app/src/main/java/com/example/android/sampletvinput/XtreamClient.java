@@ -37,6 +37,8 @@ public final class XtreamClient {
     /** Comma-separated category ids from before ChannelConfig existed; read once to migrate. */
     public static final String PREF_CATEGORIES = "categories";
     public static final String PREF_USE_HLS = "use_hls";
+    // Asked just before tuning, so it mustn't hold the channel change up for long.
+    private static final int CONNECTIONS_TIMEOUT_MS = 4_000;
     public static final String PREF_LAST_SYNC = "last_sync";
 
     public static class Category {
@@ -117,6 +119,38 @@ public final class XtreamClient {
         } catch (IOException | JSONException e) {
             Log.w(TAG, "Account check failed", e);
             return "Could not reach server: " + e.getMessage();
+        }
+    }
+
+    /**
+     * The account's connections in use and its limit, as {active, max}, from player_api's
+     * user_info; null if the panel can't be asked quickly or doesn't say.
+     */
+    public int[] connections() {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new java.net.URL(apiUrl(null).build().toString())
+                    .openConnection();
+            connection.setConnectTimeout(CONNECTIONS_TIMEOUT_MS);
+            connection.setReadTimeout(CONNECTIONS_TIMEOUT_MS);
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) return null;
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (InputStream in = connection.getInputStream()) {
+                byte[] buffer = new byte[8 * 1024];
+                int n;
+                while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            }
+            JSONObject user = new JSONObject(out.toString("UTF-8")).optJSONObject("user_info");
+            if (user == null || !user.has("active_cons") || !user.has("max_connections")) {
+                return null;
+            }
+            // Panels send these as strings or numbers.
+            return new int[]{Integer.parseInt(user.optString("active_cons").trim()),
+                    Integer.parseInt(user.optString("max_connections").trim())};
+        } catch (IOException | JSONException | NumberFormatException e) {
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
         }
     }
 

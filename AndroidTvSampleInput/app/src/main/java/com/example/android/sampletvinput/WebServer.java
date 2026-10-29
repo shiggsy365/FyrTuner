@@ -61,6 +61,7 @@ import fi.iki.elonen.NanoHTTPD;
  *   GET  /logos/ID.png                    an uploaded logo
  *   GET  /api/backup?password=0|1         zip of settings, config, logos and guide lists
  *   POST /api/restore                     zip bytes from /api/backup; replaces everything
+ *   GET  /api/connections                each account's connections in use and limit
  *   POST /api/sync
  */
 public class WebServer extends NanoHTTPD {
@@ -195,6 +196,8 @@ public class WebServer extends NanoHTTPD {
                 return searchGuide(params.get("source"), params.get("q"));
             case "/api/logos":
                 return setLogos(require(body));
+            case "/api/connections":
+                return connections();
             case "/api/sync":
                 ChannelSyncWorker.syncNow(mContext);
                 return new JSONObject().put("ok", true);
@@ -341,6 +344,35 @@ public class WebServer extends NanoHTTPD {
                     .put("hasPassword", !src.optString("password").isEmpty()));
         }
         return result;
+    }
+
+    /** Each Xtream account's connections in use and its limit, asked of the panels at once. */
+    private JSONObject connections() throws Exception {
+        JSONArray sources = sourcesJson(ChannelConfig.load(mContext));
+        java.util.concurrent.ExecutorService pool =
+                java.util.concurrent.Executors.newFixedThreadPool(Math.max(1, sources.length()));
+        try {
+            List<java.util.concurrent.Future<int[]>> results = new ArrayList<>();
+            for (int i = 0; i < sources.length(); i++) {
+                int index = sources.getJSONObject(i).getInt("index");
+                results.add(pool.submit(() -> {
+                    XtreamClient client = Sources.client(mContext, index);
+                    return client == null ? null : client.connections();
+                }));
+            }
+            JSONArray out = new JSONArray();
+            for (int i = 0; i < sources.length(); i++) {
+                JSONObject src = sources.getJSONObject(i);
+                int[] cons = results.get(i).get(10, java.util.concurrent.TimeUnit.SECONDS);
+                JSONObject o = new JSONObject().put("index", src.getInt("index"))
+                        .put("name", src.optString("name"));
+                if (cons != null) o.put("active", cons[0]).put("max", cons[1]);
+                out.put(o);
+            }
+            return new JSONObject().put("connections", out);
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     private JSONObject addSource(JSONObject body) throws Exception {

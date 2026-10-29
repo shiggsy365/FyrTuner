@@ -115,6 +115,11 @@ public class PlayerActivity extends Activity {
     private long mBufferingSinceMs;
     private long mLastPosition = -1;
     private long mLastProgressMs;
+    // Each playStream call's number, so a slow account check for an earlier one is ignored.
+    private int mPlaySerial;
+    private int mPlayerSource;
+    // Whether a stream was skipped since tuning because its account was full.
+    private boolean mAccountBusy;
 
     // Catch-up: the programme being watched (0 when live), and the wall-clock time that
     // position 0 of the current recording URL stands for.
@@ -298,6 +303,7 @@ public class PlayerActivity extends Activity {
         mRecordingStart = 0;
         mStreamsTried = 0;
         mManualStream = false;
+        mAccountBusy = false;
         playStream(0);
     }
 
@@ -319,6 +325,7 @@ public class PlayerActivity extends Activity {
         mRecordingStart = from;
         mStreamsTried = 0;
         mManualStream = false;
+        mAccountBusy = false;
         playStream(mStreamIndex < channel.streams.size()
                 && channel.archiveDays.get(mStreamIndex) > 0 ? mStreamIndex : first);
     }
@@ -358,6 +365,27 @@ public class PlayerActivity extends Activity {
         }
         releasePlayer();
         mStarted = false;
+        mBuffering.setVisibility(View.VISIBLE);
+        // Don't take the account's only connection from someone watching on another TV.
+        int source = Sources.sourceOf(streamId);
+        int serial = ++mPlaySerial;
+        mExecutor.execute(() -> {
+            boolean busy = Connections.busy(getApplicationContext(), source);
+            runOnUiThread(() -> {
+                if (isDestroyed() || serial != mPlaySerial) return;
+                if (busy) {
+                    mAccountBusy = true;
+                    failOver("is on an account in use on another TV");
+                } else {
+                    startPlayer(url, source);
+                }
+            });
+        });
+    }
+
+    private void startPlayer(String url, int source) {
+        mPlayerSource = source;
+        Connections.using(source);
         mStreamStartMs = System.currentTimeMillis();
         mBufferingSinceMs = 0;
         mLastPosition = -1;
@@ -447,7 +475,9 @@ public class PlayerActivity extends Activity {
             mHandler.removeCallbacks(mWatchdog);
             releasePlayer();
             mBuffering.setVisibility(View.GONE);
-            Toast.makeText(this, (mCatchupStart > 0 ? "Couldn't play the recording of "
+            Toast.makeText(this, mAccountBusy && !mStarted
+                    ? "Every account for " + channel.name + " is in use on another TV"
+                    : (mCatchupStart > 0 ? "Couldn't play the recording of "
                     : "No working stream for ") + channel.name, Toast.LENGTH_LONG).show();
             return;
         }
@@ -634,6 +664,7 @@ public class PlayerActivity extends Activity {
             mPlayerView.setPlayer(null);
             mPlayer.release();
             mPlayer = null;
+            Connections.released(mPlayerSource);
         }
     }
 
