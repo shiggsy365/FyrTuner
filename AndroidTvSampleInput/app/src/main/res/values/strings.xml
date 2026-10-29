@@ -14,6 +14,5 @@
      limitations under the License.
 -->
 <resources>
-    <string name="app_name">Sample TV Inputs</string>
-    <string name="rich_input_label" translatable="false">Amazon Sample TV Input</string>
+    <string name="app_name">FyrTuner</string>
 </resources>

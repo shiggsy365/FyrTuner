@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000">
+
+    <!-- Focusable so focus can leave the banner's buttons while it's shown for a skip. -->
+    <com.google.android.exoplayer2.ui.StyledPlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:focusable="true" />
+
+    <ProgressBar
+        android:id="@+id/buffering"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/player_overlay"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="48dp"
+        android:paddingEnd="48dp"
+        android:paddingTop="64dp"
+        android:paddingBottom="36dp">
+
+        <ImageView
+            android:id="@+id/overlay_logo"
+            android:layout_width="80dp"
+            android:layout_height="44dp"
+            android:scaleType="fitCenter" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="20dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/overlay_channel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <!-- "Catch-up" when the channel has recordings, highlighted while watching one. -->
+                <TextView
+                    android:id="@+id/overlay_badge"
+                    style="@style/Chip.Small"
+                    android:layout_marginStart="10dp"
+                    android:visibility="gone" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="100" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/overlay_now"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#FFE0E0E8"
+                android:fontFamily="sans-serif"
+                android:textSize="14sp" />
+
+            <ProgressBar
+                android:id="@+id/overlay_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="6dp"
+                android:max="1000"
+                android:progressDrawable="@drawable/guide_progress" />
+
+            <TextView
+                android:id="@+id/overlay_next"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#FFA8AAB8"
+                android:fontFamily="sans-serif"
+                android:textSize="12sp" />
+
+            <!-- Shown with the banner; Left/Right move between them, OK presses. -->
+            <LinearLayout
+                android:id="@+id/overlay_buttons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <TextView android:id="@+id/btn_play" style="@style/OsdButton" android:text="Pause" />
+                <TextView android:id="@+id/btn_start_over" style="@style/OsdButton" android:text="Start over" />
+                <TextView android:id="@+id/btn_live" style="@style/OsdButton" android:text="Back to live" />
+                <TextView android:id="@+id/btn_streams" style="@style/OsdButton" android:text="Streams" />
+                <TextView android:id="@+id/btn_subtitles" style="@style/OsdButton" android:text="Subtitles: Off" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

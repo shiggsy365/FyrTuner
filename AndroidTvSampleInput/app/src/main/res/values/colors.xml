@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="guide_background">#FF0E0F14</color>
+    <color name="guide_panel">#FF171922</color>
+    <color name="guide_focus">#FFE8EAF2</color>
+    <color name="guide_text">#FFECEDF3</color>
+    <color name="guide_text_on_focus">#FF101218</color>
+    <color name="guide_muted">#FF8D90A0</color>
+    <color name="guide_accent">#FF7C8CFF</color>
+    <color name="guide_track">#33FFFFFF</color>
+</resources>

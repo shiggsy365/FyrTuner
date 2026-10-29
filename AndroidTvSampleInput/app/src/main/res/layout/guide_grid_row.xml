@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/guide_row_height"
+    android:orientation="horizontal"
+    android:paddingBottom="3dp">
+
+    <FrameLayout
+        android:id="@+id/channel_cell"
+        android:layout_width="@dimen/guide_channel_column"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="3dp"
+        android:background="@drawable/guide_channel_cell">
+
+        <TextView
+            android:id="@+id/number"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:layout_marginStart="8dp"
+            android:gravity="center_vertical"
+            android:fontFamily="sans-serif"
+            android:textColor="@color/guide_muted"
+            android:textSize="11sp" />
+
+        <!-- Marks channels with catch-up. -->
+        <TextView
+            android:id="@+id/catchup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="2dp"
+            android:text="↺"
+            android:textColor="@color/guide_accent"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="64dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="8dp"
+            android:scaleType="fitCenter" />
+    </FrameLayout>
+
+    <!-- Programme cells, positioned by time in code. -->
+    <FrameLayout
+        android:id="@+id/programs"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+</LinearLayout>

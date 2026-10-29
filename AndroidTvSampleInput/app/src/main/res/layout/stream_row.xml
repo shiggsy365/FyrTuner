@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One stream in the player's stream menu: source chip, name, catch-up chip. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="36dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp">
+
+    <!-- Marks the stream playing now. -->
+    <TextView
+        android:id="@+id/stream_current"
+        android:layout_width="18dp"
+        android:layout_height="wrap_content"
+        android:text="▶"
+        android:textColor="@color/guide_accent"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/stream_source"
+        style="@style/Chip.Small" />
+
+    <TextView
+        android:id="@+id/stream_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@color/guide_text"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/stream_catchup"
+        style="@style/Chip.Small.Catchup"
+        android:layout_marginStart="8dp"
+        android:text="Catch-up" />
+</LinearLayout>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/guide_background">
+
+    <!-- Live preview of the highlighted channel, top right, fading into the page. -->
+    <FrameLayout
+        android:id="@+id/preview_frame"
+        android:layout_width="320dp"
+        android:layout_height="180dp"
+        android:layout_gravity="top|end">
+
+        <ImageView
+            android:id="@+id/preview_logo"
+            android:layout_width="120dp"
+            android:layout_height="68dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:alpha="0.4" />
+
+        <com.google.android.exoplayer2.ui.StyledPlayerView
+            android:id="@+id/preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/preview_fade_left" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/preview_fade_bottom" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="18dp">
+
+        <!-- Group chips. -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+        </HorizontalScrollView>
+
+        <!-- Details of the highlighted programme, up to the preview's left edge: the preview
+             is 320dp wide at the screen edge, less this layout's 32dp end padding. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="96dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="288dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/hero_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="@color/guide_text"
+                android:textSize="22sp" />
+
+            <TextView
+                android:id="@+id/hero_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="sans-serif"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="@color/guide_muted"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/hero_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="sans-serif"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:lineSpacingMultiplier="1.1"
+                android:textColor="#CCECEDF3"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:id="@+id/grid_area"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <!-- Time ruler: date and time on the left, half-hour marks above the grid. -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="26dp">
+
+                    <TextView
+                        android:id="@+id/ruler_date"
+                        android:layout_width="@dimen/guide_channel_column"
+                        android:layout_height="match_parent"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/guide_muted"
+                        android:textSize="12sp" />
+
+                    <FrameLayout
+                        android:id="@+id/ruler"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="@dimen/guide_channel_column" />
+                </FrameLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/grid"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:focusable="true"
+                    android:descendantFocusability="blocksDescendants"
+                    android:scrollbars="none" />
+            </LinearLayout>
+
+            <!-- Current time. -->
+            <View
+                android:id="@+id/now_line"
+                android:layout_width="2dp"
+                android:layout_height="match_parent"
+                android:background="#FFE53935"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/guide_muted"
+                android:textSize="15sp"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

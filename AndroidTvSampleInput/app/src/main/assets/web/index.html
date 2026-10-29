@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FyrTuner</title>
+<style>
+  :root {
+    --bg: #f6f6f8; --panel: #ffffff; --text: #1b1b22; --muted: #6b6b78; --line: #e2e2e8;
+    --accent: #3d5afe; --accent-text: #ffffff; --danger: #c62828; --chip: #eef0ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121218; --panel: #1c1c25; --text: #ececf2; --muted: #9a9aa8; --line: #2c2c38;
+      --accent: #7c8cff; --accent-text: #0d0d14; --danger: #ef5350; --chip: #262a45;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         background: var(--bg); color: var(--text); }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 16px;
+           background: var(--panel); border-bottom: 1px solid var(--line); position: sticky;
+           top: 0; z-index: 5; }
+  header h1 { font-size: 18px; margin: 0; flex: 1; }
+  nav { display: flex; gap: 4px; padding: 8px 16px 0; }
+  nav button { background: none; border: none; border-bottom: 2px solid transparent;
+               color: var(--muted); padding: 8px 12px; font-size: 15px; cursor: pointer; }
+  nav button.active { color: var(--text); border-color: var(--accent); }
+  main { padding: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+           padding: 14px; margin-bottom: 16px; }
+  .panel h2 { font-size: 16px; margin: 0 0 10px; }
+  .layout { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 16px; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+  button, select, input[type=text], input[type=password], input[type=url], input[type=search] {
+    font: inherit; color: inherit; }
+  input[type=text], input[type=password], input[type=url], input[type=search], select {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px;
+    width: 100%; }
+  input[type=checkbox] { width: 20px; height: 20px; margin: 0; flex: none; cursor: pointer;
+                         accent-color: var(--accent); }
+  .btn { background: var(--chip); border: 1px solid var(--line); border-radius: 6px;
+         padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > .grow { flex: 1; min-width: 0; }
+  label.field { display: block; margin-bottom: 10px; }
+  label.field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .groups { list-style: none; margin: 0; padding: 0; }
+  .groups li { border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-bottom: 6px;
+               cursor: pointer; }
+  .groups li.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .groups li.off .gname { text-decoration: line-through; color: var(--muted); }
+  .gname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--chip);
+         color: var(--muted); }
+  .tag.catchup { color: var(--accent); font-weight: 600; }
+  .icon-btn { background: none; border: none; cursor: pointer; padding: 2px 6px; color: var(--muted);
+              font-size: 16px; }
+  .channels { width: 100%; border-collapse: collapse; }
+  .channels td { border-top: 1px solid var(--line); padding: 6px 4px; vertical-align: middle; }
+  .channels tr.hidden td { opacity: .5; }
+  .handle { cursor: grab; touch-action: none; user-select: none; color: var(--muted);
+            font-size: 18px; padding: 6px 8px; }
+  .handle.off { visibility: hidden; }
+  .channels tr.dragging td { background: var(--chip); opacity: 1; }
+  body.drag { cursor: grabbing; user-select: none; }
+  .logo { width: 40px; height: 28px; object-fit: contain; display: block; }
+  .logocell { cursor: pointer; text-align: center; }
+  .logocell .src { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .cname { font-weight: 500; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .toolbar select { width: auto; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+           color: var(--text); width: min(560px, calc(100vw - 32px)); padding: 16px; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .results { max-height: 50vh; overflow: auto; margin-top: 10px; }
+  .results div { padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+  .results div:hover { background: var(--chip); }
+  #offline { display: none; background: var(--danger); color: #fff; padding: 8px 16px;
+             font-size: 14px; }
+  #offline.show { display: block; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .tile { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg);
+          display: flex; flex-direction: column; gap: 8px; }
+  .tile.drop { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .tile .art { height: 84px; border-radius: 6px; background: #20222c; display: flex;
+               align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .tile .art img { max-width: 90%; max-height: 72px; object-fit: contain; }
+  .tile .art .hint { position: absolute; bottom: 4px; right: 6px; font-size: 11px; color: #9a9aa8; }
+  .tile .tname { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sugg { border-top: 1px solid var(--line); padding: 8px 0; }
+  .sugg .opts { margin-left: 28px; }
+  .streamrow { display: flex; gap: 8px; align-items: center; padding: 6px 0;
+               border-top: 1px solid var(--line); }
+  .streamrow .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+           background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 8px;
+           opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100vw - 32px); }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FyrTuner</h1>
+  <span class="muted" id="syncStatus"></span>
+  <button class="btn primary" id="syncBtn">Sync</button>
+</header>
+<div id="offline" role="status">Can't reach the Fire Stick. It may be asleep or its Wi-Fi
+  signal may be weak. Press a button on the remote; this page reconnects by itself.</div>
+<nav>
+  <button data-tab="groups" class="active">Groups &amp; channels</button>
+  <button data-tab="logos">Logos</button>
+  <button data-tab="guides">Guides</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+<main>
+  <section id="tab-groups">
+    <div class="layout">
+      <div>
+        <div class="panel">
+          <h2>Groups</h2>
+          <p class="muted">Channels are numbered in this order, which is the order they appear in
+            the TV guide.</p>
+          <ul class="groups" id="groupList"></ul>
+        </div>
+        <div class="panel">
+          <h2>Add a group</h2>
+          <label class="field"><span>Source</span><select id="catSource"></select></label>
+          <label class="field"><span>Xtream category</span>
+            <input type="search" id="catSearch" placeholder="Search categories, e.g. UK|"></label>
+          <div class="results" id="catResults"></div>
+          <label class="field" style="margin-top:12px"><span>Or a custom group</span>
+            <div class="row"><input type="text" id="customName" class="grow" placeholder="Group name">
+              <button class="btn" id="addCustom">Add</button></div></label>
+        </div>
+      </div>
+      <div class="panel" id="channelPanel">
+        <p class="muted">Pick a group to see its channels.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-logos" hidden>
+    <div class="panel">
+      <h2>Logos</h2>
+      <p class="muted">Drag an image onto a channel, or tap its logo to choose a file. M3U uses the
+        panel's logo; EPG uses the logo from the channel's linked guide. Sync to update the TV.</p>
+      <div class="toolbar">
+        <select id="logoGroup" style="width:auto"></select>
+        <label class="row"><input type="checkbox" id="logoSelAll"> All</label>
+        <input type="search" id="logoFilter" placeholder="Filter" style="width:160px">
+        <label class="row"><input type="checkbox" id="logoHideHidden" checked> Hide hidden channels</label>
+        <button class="btn" data-logobulk="m3u">Selected → M3U logo</button>
+        <button class="btn" data-logobulk="epg">Selected → EPG logo</button>
+      </div>
+      <div class="tiles" id="logoTiles"></div>
+    </div>
+    <input type="file" id="logoFile" accept="image/*" hidden>
+  </section>
+
+  <section id="tab-guides" hidden>
+    <div class="panel">
+      <h2>Guide sources</h2>
+      <p class="muted">Channels use the panel's guide by default. Add XMLTV guides (.xml or .xml.gz)
+        here, then link channels to them from the channel list.</p>
+      <div id="guideList"></div>
+    </div>
+    <div class="panel">
+      <h2>Add a guide</h2>
+      <label class="field"><span>Name</span><input type="text" id="guideName" placeholder="e.g. EPG UK"></label>
+      <label class="field"><span>XMLTV URL</span><input type="url" id="guideUrl" placeholder="https://…/guide.xml.gz"></label>
+      <button class="btn primary" id="addGuide">Add and load channels</button>
+    </div>
+  </section>
+
+  <section id="tab-settings" hidden>
+    <div class="panel">
+      <h2>Xtream account</h2>
+      <label class="field"><span>Name</span><input type="text" id="setName" placeholder="Main"></label>
+      <label class="field"><span>Server</span><input type="url" id="setServer"></label>
+      <label class="field"><span>Username</span><input type="text" id="setUser" autocomplete="off"></label>
+      <label class="field"><span>Password</span><input type="password" id="setPass" autocomplete="new-password"></label>
+      <label class="row"><input type="checkbox" id="setHls"> Use HLS (.m3u8) instead of MPEG-TS</label>
+    </div>
+    <div class="panel">
+      <h2>More Xtream sources</h2>
+      <p class="muted">Add other panels. Their categories can then be added as groups, and their
+        streams merged into channels as backups.</p>
+      <div id="sourceList"></div>
+      <h2 style="font-size:14px;margin-top:16px" id="sourceFormTitle">Add a source</h2>
+      <label class="field"><span>Name</span><input type="text" id="srcName" placeholder="e.g. Panel B"></label>
+      <label class="field"><span>Server</span><input type="url" id="srcServer" placeholder="http://host:port"></label>
+      <label class="field"><span>Username</span><input type="text" id="srcUser" autocomplete="off"></label>
+      <label class="field"><span>Password</span><input type="password" id="srcPass" autocomplete="new-password"></label>
+      <label class="row"><input type="checkbox" id="srcHls"> Use HLS (.m3u8) instead of MPEG-TS</label>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="srcSave">Add source</button>
+        <button class="btn" id="srcCancel" hidden>Cancel</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Clean up channel names</h2>
+      <p class="muted">Comma-separated. Matching ignores case and repeats, so "UK: BBC One HD"
+        with prefix "UK:" and suffix "HD" becomes "BBC One".</p>
+      <label class="field"><span>Remove prefixes</span><input type="text" id="setPrefixes" placeholder="UK:, UK|, |UK|"></label>
+      <label class="field"><span>Remove suffixes</span><input type="text" id="setSuffixes" placeholder="HD, FHD, ᴴᴰ, ᴿᴬᵂ"></label>
+    </div>
+    <button class="btn primary" id="saveSettings">Save settings</button>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>This browser</h2>
+      <label class="row"><input type="checkbox" id="prefMergeUpConfirm"> Ask before "Merge up"</label>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Backup &amp; restore</h2>
+      <p class="muted">A backup holds the Xtream account, groups, channel order and edits, guide
+        links and sources, name clean-up lists and uploaded logos. Restore it here or on a new
+        device running FyrTuner.</p>
+      <label class="row"><input type="checkbox" id="backupPassword" checked> Include the Xtream
+        password (anyone with the file can then use your account)</label>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="downloadBackup">Download backup</button>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <input type="file" id="restoreFile" accept=".zip,application/zip" class="grow">
+        <button class="btn danger" id="restoreBackup">Restore</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="linkDialog">
+  <h2 style="margin-top:0;font-size:16px">Link guide for <span id="linkFor"></span></h2>
+  <div class="row">
+    <select id="linkSource" style="width:auto"></select>
+    <input type="search" id="linkSearch" class="grow" placeholder="Search guide channels">
+  </div>
+  <p class="muted" id="linkNote"></p>
+  <div class="results" id="linkResults"></div>
+  <label class="row" style="margin-top:10px">Time offset
+    <select id="linkOffset" style="width:auto"></select>
+    <span class="muted">Moves this channel's listings, if its guide runs early or late.</span></label>
+  <div class="row" style="margin-top:12px; justify-content:flex-end">
+    <button class="btn" id="linkDefault">Use panel default</button>
+    <button class="btn" id="linkNone">No guide</button>
+    <button class="btn" id="linkCancel">Cancel</button>
+  </div>
+</dialog>
+<dialog id="streamsDialog">
+  <h2 style="margin-top:0;font-size:16px">Streams for <span id="streamsFor"></span></h2>
+  <div class="row">
+    <input type="text" id="channelName" class="grow" placeholder="Channel name">
+    <button class="btn" id="channelNameSave">Rename</button>
+    <button class="btn" id="channelNameReset">Reset</button>
+  </div>
+  <p class="muted">Played in this order. If one fails or stalls, FyrTuner moves on to the next,
+    and the one that works moves to the top.</p>
+  <div id="streamsList"></div>
+  <h2 style="font-size:14px;margin:16px 0 6px">Add stream</h2>
+  <div class="row">
+    <select id="addStreamSource" style="width:auto"></select>
+    <input type="search" id="addStreamSearch" class="grow" placeholder="Search every stream on the source, e.g. bbc one">
+  </div>
+  <p class="muted" id="addStreamNote"></p>
+  <div class="results" id="addStreamResults" style="max-height:30vh"></div>
+  <div class="row" style="margin-top:12px; justify-content:flex-end">
+    <button class="btn" id="streamsClose">Close</button>
+  </div>
+</dialog>
+<dialog id="suggestDialog">
+  <h2 style="margin-top:0;font-size:16px">Suggested merges</h2>
+  <p class="muted">Channels whose names match once quality tags (HD, 4K, HEVC…) are ignored.
+    Each ticked set becomes one channel with its streams as backups, named after the first.</p>
+  <div id="suggestList" class="results" style="max-height:60vh"></div>
+  <div class="row" style="margin-top:12px; justify-content:flex-end">
+    <button class="btn" id="suggestCancel">Cancel</button>
+    <button class="btn primary" id="suggestApply">Apply selected</button>
+  </div>
+</dialog>
+<dialog id="mergeUpDialog">
+  <h2 style="margin-top:0;font-size:16px">Merge up</h2>
+  <p id="mergeUpText"></p>
+  <label class="row"><input type="checkbox" id="mergeUpSkip"> Don't show this again</label>
+  <div class="row" style="margin-top:12px; justify-content:flex-end">
+    <button class="btn" id="mergeUpCancel">Cancel</button>
+    <button class="btn primary" id="mergeUpOk">Merge</button>
+  </div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+let state = null, categories = {}, selectedGroup = null, channels = [], linkTargets = [];
+let chHideHidden = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Network failures (the Stick asleep or out of Wi-Fi range) show one banner instead of a
+// toast per request; it clears on the next request that gets through.
+class OfflineError extends Error {}
+let offline = false;
+function setOffline(value) {
+  if (value === offline) return;
+  offline = value;
+  $('offline').classList.toggle('show', value);
+  if (!value) toast('Reconnected to the Fire Stick');
+}
+async function api(path, body) {
+  let res;
+  try {
+    res = await fetch(path, body === undefined ? {} :
+        {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  } catch (e) {
+    setOffline(true);
+    throw new OfflineError();
+  }
+  setOffline(false);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+async function run(fn) {
+  try { await fn(); } catch (e) { if (!(e instanceof OfflineError)) toast(e.message); }
+}
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x === b));
+  ['groups', 'logos', 'guides', 'settings'].forEach(t => $('tab-' + t).hidden = t !== b.dataset.tab);
+  if (b.dataset.tab === 'logos') openLogos();
+  if (b.dataset.tab === 'settings') $('prefMergeUpConfirm').checked = !pref('skipMergeUpConfirm');
+});
+$('prefMergeUpConfirm').onchange = e => setPref('skipMergeUpConfirm', !e.target.checked);
+
+function applyState(s) {
+  state = s;
+  renderSync(); renderGroups(); renderGuides(); renderSettings(); renderSources();
+}
+function renderSync() {
+  const s = state.sync;
+  const last = s.last ? 'Last synced ' + new Date(s.last).toLocaleString() : 'Not synced yet';
+  $('syncStatus').textContent = s.running ? (s.status || 'Syncing…') : (s.status ? s.status + ' · ' : '') + last;
+  $('syncBtn').disabled = s.running;
+}
+
+// ---- Groups ----
+function renderGroups() {
+  const list = $('groupList');
+  if (!state.groups.length) {
+    list.innerHTML = '<p class="muted">No groups yet. Add an Xtream category below.</p>';
+    return;
+  }
+  list.innerHTML = state.groups.map((g, i) => `
+    <li data-id="${esc(g.id)}" class="${g.id === selectedGroup ? 'selected' : ''} ${g.enabled === false ? 'off' : ''}">
+      <div class="row">
+        <span class="gname grow">${esc(g.name)}</span>
+        <span class="tag">${g.id.startsWith('c:') ? 'custom' : 'xtream'}</span>
+        <button class="icon-btn" data-act="up" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="icon-btn" data-act="down" title="Move down" ${i === state.groups.length - 1 ? 'disabled' : ''}>↓</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label class="row muted"><input type="checkbox" data-act="enabled" ${g.enabled !== false ? 'checked' : ''}> On</label>
+        <span class="grow"></span>
+        <button class="icon-btn" data-act="rename" title="Rename">✎</button>
+        <button class="icon-btn" data-act="delete" title="Remove group">✕</button>
+      </div>
+    </li>`).join('');
+}
+$('groupList').addEventListener('click', e => {
+  const li = e.target.closest('li'); if (!li) return;
+  const id = li.dataset.id, act = e.target.dataset.act;
+  if (act === 'up' || act === 'down') {
+    run(async () => applyState(await api('/api/groups/update', {id, move: act === 'up' ? -1 : 1})));
+  } else if (act === 'rename') {
+    const g = state.groups.find(x => x.id === id);
+    const name = prompt('Group name', g.name);
+    if (name) run(async () => applyState(await api('/api/groups/update', {id, name})));
+  } else if (act === 'delete') {
+    if (confirm('Remove this group? Channels moved into it go back to their own category.')) {
+      run(async () => {
+        applyState(await api('/api/groups/delete', {id}));
+        if (selectedGroup === id) { selectedGroup = null; $('channelPanel').innerHTML = '<p class="muted">Pick a group to see its channels.</p>'; }
+      });
+    }
+  } else if (!act && e.target.tagName !== 'SELECT' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
+    selectGroup(id);
+  }
+});
+$('groupList').addEventListener('change', e => {
+  const id = e.target.closest('li').dataset.id, act = e.target.dataset.act;
+  if (act !== 'enabled') return;
+  run(async () => applyState(await api('/api/groups/update', {id, enabled: e.target.checked})));
+});
+
+function sourceName(index) {
+  const src = (state.sources || []).find(x => x.index === index);
+  return src ? src.name : 'Source ' + index;
+}
+function fillSourceSelect(sel) {
+  const current = sel.value;
+  sel.innerHTML = (state.sources || []).map(x => `<option value="${x.index}">${esc(x.name)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === current)) sel.value = current;
+}
+$('catSource').onchange = () => { $('catResults').innerHTML = ''; $('catSearch').dispatchEvent(new Event('input')); };
+$('catSearch').addEventListener('input', () => run(async () => {
+  const source = Number($('catSource').value || 0);
+  if (!categories[source]) categories[source] = await api('/api/categories?source=' + source);
+  const q = $('catSearch').value.trim().toLowerCase();
+  const have = new Set(state.groups.map(g => g.id));
+  const hits = q ? categories[source].filter(c => c.name.toLowerCase().includes(q)).slice(0, 40) : [];
+  $('catResults').innerHTML = hits.map(c => `<div data-id="${esc(c.key)}" data-name="${esc(source ? sourceName(source) + ': ' + c.name : c.name)}">
+      ${esc(c.name)} ${have.has('x:' + c.key) ? '<span class="tag">added</span>' : ''}</div>`).join('');
+}));
+$('catResults').addEventListener('click', e => {
+  const d = e.target.closest('div[data-id]'); if (!d) return;
+  run(async () => {
+    applyState(await api('/api/groups', {categoryId: d.dataset.id, name: d.dataset.name}));
+    toast('Added ' + d.dataset.name);
+    $('catSearch').dispatchEvent(new Event('input'));
+  });
+});
+$('addCustom').onclick = () => run(async () => {
+  const name = $('customName').value.trim(); if (!name) return;
+  applyState(await api('/api/groups', {name}));
+  $('customName').value = '';
+});
+
+// ---- Channels ----
+async function selectGroup(id) {
+  // Reloading the group on screen (after an edit) keeps the list, scroll position, filter
+  // and ticked channels; switching group starts fresh.
+  const refresh = id === selectedGroup && $('chRows');
+  const scrollY = window.scrollY;
+  const filter = refresh ? $('chFilter').value : '';
+  const ticked = refresh ? new Set(selectedIds()) : new Set();
+  selectedGroup = id; renderGroups();
+  const g = state.groups.find(x => x.id === id);
+  if (!refresh) {
+    $('channelPanel').innerHTML = `<h2>${esc(g.name)}</h2><p class="muted">Loading channels…</p>`;
+  }
+  await run(async () => {
+    channels = await api('/api/channels?group=' + encodeURIComponent(id));
+    renderChannels();
+    if (refresh) {
+      $('chFilter').value = filter;
+      renderRows();
+      document.querySelectorAll('#chRows tr').forEach(tr => {
+        if (ticked.has(Number(tr.dataset.id))) tr.querySelector('input[type=checkbox]').checked = true;
+      });
+      window.scrollTo(0, scrollY);
+    }
+  });
+}
+function renderChannels() {
+  const g = state.groups.find(x => x.id === selectedGroup);
+  if (!g) return;
+  const others = state.groups.filter(x => x.id !== selectedGroup);
+  const visible = channels.filter(c => !c.hidden).length;
+  $('channelPanel').innerHTML = `
+    <h2>${esc(g.name)}</h2>
+    <p class="muted">${channels.length} channels, ${visible} shown on the TV${g.enabled === false ? ' (group is off)' : ''}.
+      Drag ⋮⋮ to reorder.</p>
+    <div class="toolbar">
+      <label class="row"><input type="checkbox" id="selAll"> All</label>
+      <input type="search" id="chFilter" placeholder="Filter" style="width:160px">
+      <label class="row"><input type="checkbox" id="chHideHidden" ${chHideHidden ? 'checked' : ''}> Hide hidden</label>
+      <button class="btn" data-bulk="hide">Hide</button>
+      <button class="btn" data-bulk="show">Show</button>
+      <select id="moveTo"><option value="">Move to…</option>
+        ${others.map(o => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select>
+      ${g.id.startsWith('c:') ? '<button class="btn" data-bulk="remove" title="Send ticked channels back to their own category">Remove from group</button>' : ''}
+      <button class="btn" data-bulk="unlink">Reset guide</button>
+      <button class="btn" data-bulk="merge" title="Merge ticked channels into the first ticked">Merge selected</button>
+      <button class="btn" id="suggestBtn">Suggest merges</button>
+      <button class="btn" data-sort="1" title="Sort the whole group by name">Sort A–Z</button>
+      <button class="btn" data-sort="-1" title="Sort the whole group by name, reversed">Sort Z–A</button>
+    </div>
+    <table class="channels"><tbody id="chRows"></tbody></table>`;
+  renderRows();
+  $('chFilter').oninput = renderRows;
+  $('chHideHidden').onchange = e => { chHideHidden = e.target.checked; renderRows(); };
+  $('selAll').onchange = e => document.querySelectorAll('#chRows input[type=checkbox]').forEach(cb => cb.checked = e.target.checked);
+  document.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => bulk(b.dataset.bulk));
+  $('moveTo').onchange = e => { if (e.target.value) bulk('move', e.target.value); };
+  document.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => sortChannels(Number(b.dataset.sort)));
+}
+// Sorts by displayed name with numbers in numeric order (BBC 2 before BBC 10), and saves it as
+// the group's channel order so it can be fine-tuned by dragging.
+function sortChannels(direction) {
+  const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+  channels.sort((a, b) => direction * collator.compare(a.displayName, b.displayName));
+  renderRows();
+  run(async () => {
+    await api('/api/groups/order', {id: selectedGroup, order: channels.map(c => c.streamId)});
+    toast('Sorted. Sync to update the TV.');
+  });
+}
+function guideLabel(c) {
+  if (!c.guideChannel) return '<span class="muted">No guide</span>';
+  const src = state.guideSources.find(s => s.id === c.guideSource);
+  const name = c.guideName || c.guideChannel;
+  return `${esc(name)}${c.guideSource !== 'xtream' ? ` <span class="tag">${esc(src ? src.name : c.guideSource)}</span>` : ''}${
+      src && src.disabled ? ' <span class="tag">guide off</span>' : ''}`;
+}
+function renderRows() {
+  const q = ($('chFilter')?.value || '').toLowerCase();
+  // Reordering a filtered list would be ambiguous, so handles only show unfiltered.
+  const noDrag = q || (chHideHidden && channels.some(x => x.hidden));
+  $('chRows').innerHTML = channels
+      .filter(c => !(chHideHidden && c.hidden))
+      .filter(c => !q || c.name.toLowerCase().includes(q) || c.displayName.toLowerCase().includes(q)).map(c => `
+    <tr data-id="${c.streamId}" class="${c.hidden ? 'hidden' : ''}">
+      <td class="handle ${noDrag ? 'off' : ''}" title="Drag to reorder">⋮⋮</td>
+      <td><input type="checkbox"></td>
+      <td class="logocell" title="Click to switch between the M3U and EPG logo">${c.logo
+          ? `<img class="logo" loading="lazy" src="${esc(c.logo)}" alt="">` : ''}<span class="src">${
+          ({m3u: 'M3U', epg: 'EPG', custom: 'Custom'})[c.logoSource] || 'M3U'}</span></td>
+      <td class="grow"><div class="cname">${esc(c.displayName)} ${c.hidden ? '<span class="tag">hidden</span>' : ''} ${c.moved ? '<span class="tag">moved here</span>' : ''} ${catchupTag(c.catchup)}
+          <button class="icon-btn" data-act="rename" title="Rename channel">✎</button>
+          <button class="btn" data-act="streams" style="padding:1px 8px;font-size:12px">${c.streams.length} stream${c.streams.length === 1 ? '' : 's'}</button></div>
+        ${c.displayName !== c.name ? `<div class="muted">${esc(c.name)}</div>` : ''}
+        <div class="muted">Guide: ${guideLabel(c)}${c.epgOffset ? ' · ' + offsetLabel(c.epgOffset) : ''}</div></td>
+      <td style="text-align:right">
+        <button class="btn" data-act="mergeup" ${channels.indexOf(c) === 0 ? 'disabled' : ''} title="Merge into the channel above">Merge up</button>
+        <button class="btn" data-act="toggle">${c.hidden ? 'Show' : 'Hide'}</button>
+        ${c.moved ? '<button class="btn" data-act="remove" title="Send back to its own category">Remove</button>' : ''}
+        <button class="btn" data-act="link">Guide…</button></td>
+    </tr>`).join('');
+}
+document.addEventListener('click', e => {
+  const tr = e.target.closest('#chRows tr'); if (!tr) return;
+  const id = Number(tr.dataset.id), c = channels.find(x => x.streamId === id);
+  if (e.target.closest('.logocell')) { toggleLogo(c); return; }
+  if (e.target.dataset.act === 'toggle') editChannels([id], {hidden: !c.hidden});
+  if (e.target.dataset.act === 'remove') removeFromGroup([id]);
+  if (e.target.dataset.act === 'mergeup') mergeUp(c);
+  if (e.target.dataset.act === 'rename') renameChannel(c);
+  if (e.target.dataset.act === 'streams') openStreams(c);
+  if (e.target.dataset.act === 'link') openLink([c]);
+});
+// ---- Drag to reorder (pointer events, so it works with touch as well as a mouse) ----
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const handle = e.target.closest('#chRows .handle:not(.off)'); if (!handle) return;
+  e.preventDefault();
+  const row = handle.closest('tr');
+  drag = {row, before: [...row.parentNode.children].map(r => r.dataset.id).join()};
+  row.classList.add('dragging'); document.body.classList.add('drag');
+  handle.setPointerCapture(e.pointerId);
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const tbody = drag.row.parentNode;
+  // Place the row before the first row whose middle is below the pointer.
+  const next = [...tbody.children].find(r => r !== drag.row &&
+      e.clientY < r.getBoundingClientRect().top + r.offsetHeight / 2);
+  if (next) { if (next !== drag.row.nextSibling) tbody.insertBefore(drag.row, next); }
+  else if (tbody.lastElementChild !== drag.row) tbody.appendChild(drag.row);
+  // Scroll when dragging near the top or bottom of the window.
+  if (e.clientY < 60) window.scrollBy(0, -12);
+  else if (e.clientY > window.innerHeight - 60) window.scrollBy(0, 12);
+});
+function endDrag() {
+  if (!drag) return;
+  const {row, before} = drag; drag = null;
+  row.classList.remove('dragging'); document.body.classList.remove('drag');
+  const order = [...row.parentNode.children].map(r => Number(r.dataset.id));
+  if (order.join() === before) return;
+  const byId = new Map(channels.map(c => [c.streamId, c]));
+  channels = order.map(id => byId.get(id));
+  run(async () => {
+    await api('/api/groups/order', {id: selectedGroup, order});
+    toast('Order saved. Sync to update the TV.');
+  });
+}
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
+
+function toggleLogo(c) {
+  if (c.logoSource === 'epg') { setLogoSource([c.streamId], 'm3u', selectedGroup); return; }
+  if (c.logoSource === 'custom') {
+    if (confirm(`Replace the uploaded logo for ${c.displayName} with the M3U logo?`)) {
+      setLogoSource([c.streamId], 'm3u', selectedGroup);
+    }
+    return;
+  }
+  if (!c.guideChannel) { toast('No guide is linked to this channel, so there is no EPG logo'); return; }
+  setLogoSource([c.streamId], 'epg', selectedGroup);
+}
+// ---- Streams ----
+async function saveChannelName(c, name) {
+  await api('/api/channels/rename', {channel: c.streamId, name});
+  toast(name ? 'Renamed. Sync to update the TV.' : 'Name reset. Sync to update the TV.');
+  await selectGroup(selectedGroup);
+}
+function renameChannel(c) {
+  const name = prompt(`Channel name (leave empty to use "${c.defaultName}")`, c.displayName);
+  if (name === null) return;
+  run(() => saveChannelName(c, name.trim()));
+}
+$('channelNameSave').onclick = () => run(async () => {
+  const c = streamsChannel, name = $('channelName').value.trim();
+  await saveChannelName(c, name);
+  c.displayName = name || c.defaultName;
+  $('streamsFor').textContent = c.displayName;
+  $('channelNameReset').disabled = !name;
+});
+$('channelNameReset').onclick = () => run(async () => {
+  const c = streamsChannel;
+  await saveChannelName(c, '');
+  c.displayName = c.defaultName;
+  $('streamsFor').textContent = c.displayName;
+  $('channelName').value = c.displayName;
+  $('channelNameReset').disabled = true;
+});
+function mergeUp(c) {
+  const i = channels.indexOf(c); if (i <= 0) return;
+  const above = channels[i - 1];
+  const merge = () => run(async () => {
+    await api('/api/channels/merge', {group: selectedGroup, from: c.streamId, into: above.streamId});
+    toast(`Merged ${c.displayName} into ${above.displayName}. Sync to update the TV.`);
+    await selectGroup(selectedGroup);
+  });
+  if (pref('skipMergeUpConfirm')) { merge(); return; }
+  $('mergeUpText').textContent =
+      `Merge ${c.displayName} into ${above.displayName}? Its streams become backups for ${above.displayName}.`;
+  $('mergeUpSkip').checked = false;
+  $('mergeUpOk').onclick = () => {
+    if ($('mergeUpSkip').checked) setPref('skipMergeUpConfirm', true);
+    $('mergeUpDialog').close();
+    merge();
+  };
+  $('mergeUpDialog').showModal();
+}
+$('mergeUpCancel').onclick = () => $('mergeUpDialog').close();
+// Per-browser page preferences; storage can be unavailable (private windows), so they're best-effort.
+function pref(key) { try { return localStorage.getItem('fyrtuner.' + key) === '1'; } catch (e) { return false; } }
+function setPref(key, on) {
+  try { on ? localStorage.setItem('fyrtuner.' + key, '1') : localStorage.removeItem('fyrtuner.' + key); } catch (e) {}
+}
+function mergeSelected(ids) {
+  if (ids.length < 2) { toast('Tick at least two channels'); return; }
+  const byId = new Map(channels.map(c => [c.streamId, c]));
+  const into = byId.get(ids[0]);
+  if (!confirm(`Merge ${ids.length - 1} channel(s) into ${into.displayName}? Their streams become its backups.`)) return;
+  run(async () => {
+    const r = await api('/api/merges/apply',
+        {merges: [{into: ids[0], from: ids.slice(1)}], group: selectedGroup});
+    toast(`Merged ${r.merged} channel(s) into ${into.displayName}. Sync to update the TV.`);
+    await selectGroup(selectedGroup);
+  });
+}
+let streamsChannel = null;
+function openStreams(c) {
+  streamsChannel = c;
+  $('addStreamSearch').value = ''; $('addStreamResults').innerHTML = ''; $('addStreamNote').textContent = '';
+  fillSourceSelect($('addStreamSource'));
+  $('streamsFor').textContent = c.displayName;
+  $('channelName').value = c.displayName;
+  $('channelNameReset').disabled = c.displayName === c.defaultName;
+  renderStreams();
+  $('streamsDialog').showModal();
+}
+function renderStreams() {
+  const c = streamsChannel, n = c.streams.length;
+  $('streamsList').innerHTML = c.streams.map((st, i) => `
+    <div class="streamrow" data-id="${st.id}">
+      <span class="tag">${i + 1}</span>
+      <span class="tag">${esc(st.source)}</span>
+      <span class="grow">${esc(st.name)}</span>
+      ${catchupTag(st.catchup)}
+      <button class="icon-btn" data-sact="rename" title="Rename stream">✎</button>
+      <button class="icon-btn" data-sact="up" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button class="icon-btn" data-sact="down" ${i === n - 1 ? 'disabled' : ''}>↓</button>
+      ${st.id === c.streamId ? '<span class="muted" style="font-size:12px">own stream</span>'
+          : '<button class="btn" data-sact="split">Split</button>'}
+    </div>`).join('');
+}
+$('streamsList').onclick = e => {
+  const act = e.target.dataset.sact, row = e.target.closest('.streamrow');
+  if (!act || !row) return;
+  const c = streamsChannel, id = Number(row.dataset.id);
+  run(async () => {
+    if (act === 'rename') {
+      const st = c.streams.find(x => x.id === id);
+      const name = prompt('Stream name (leave empty to use the panel\'s)', st.name);
+      if (name === null) return;
+      await api('/api/channels/renamestream', {channel: c.streamId, stream: id, name});
+      const fresh = (await api('/api/channels?group=' + encodeURIComponent(selectedGroup)))
+          .find(x => x.streamId === c.streamId);
+      if (fresh) c.streams = fresh.streams;
+      toast('Renamed. Sync to update the TV.');
+    } else if (act === 'split') {
+      await api('/api/channels/split', {channel: c.streamId, stream: id});
+      c.streams = c.streams.filter(st => st.id !== id);
+      toast('Split off. Sync to update the TV.');
+    } else {
+      const i = c.streams.findIndex(st => st.id === id), j = act === 'up' ? i - 1 : i + 1;
+      [c.streams[i], c.streams[j]] = [c.streams[j], c.streams[i]];
+      await api('/api/channels/order', {channel: c.streamId, order: c.streams.map(st => st.id)});
+    }
+    renderStreams();
+  });
+};
+$('streamsClose').onclick = () => { $('streamsDialog').close(); selectGroup(selectedGroup); };
+async function searchAddStream() {
+  const q = $('addStreamSearch').value.trim();
+  if (q.length < 2) { $('addStreamResults').innerHTML = ''; return; }
+  $('addStreamNote').textContent = 'Searching… (the first search loads the whole panel and takes a moment)';
+  await run(async () => {
+    const r = await api('/api/streams/search?q=' + encodeURIComponent(q)
+        + '&source=' + ($('addStreamSource').value || 0));
+    if ($('addStreamSearch').value.trim() !== q) return;
+    const have = new Set(streamsChannel.streams.map(st => st.id));
+    $('addStreamNote').textContent = r.matches.length
+        ? `${r.matches.length} match(es) from ${r.total} streams` : 'No matches.';
+    $('addStreamResults').innerHTML = r.matches.map(m => `
+      <div data-id="${m.id}" data-name="${esc(m.name)}">${esc(m.name)}
+        <span class="muted">${esc(m.category)}</span> ${catchupTag(m.catchup)}${have.has(m.id) ? ' <span class="tag">added</span>' : ''}</div>`).join('');
+  });
+}
+$('addStreamSource').onchange = () => searchAddStream();
+$('addStreamSearch').oninput = () => { clearTimeout(searchAddStream.t); searchAddStream.t = setTimeout(searchAddStream, 400); };
+$('addStreamResults').onclick = e => {
+  const d = e.target.closest('div[data-id]'); if (!d) return;
+  const c = streamsChannel, id = Number(d.dataset.id);
+  if (c.streams.some(st => st.id === id)) { toast('Already one of this channel\'s streams'); return; }
+  run(async () => {
+    await api('/api/channels/addstream', {channel: c.streamId, stream: id, name: d.dataset.name});
+    c.streams.push({id, name: d.dataset.name});
+    renderStreams();
+    searchAddStream();
+    toast('Stream added. Sync to update the TV.');
+  });
+};
+
+let suggestions = [];
+document.addEventListener('click', e => {
+  if (e.target.id !== 'suggestBtn') return;
+  run(async () => {
+    $('suggestList').innerHTML = '<p class="muted">Looking for matches…</p>';
+    $('suggestDialog').showModal();
+    suggestions = (await api('/api/merges/suggest')).suggestions;
+    $('suggestList').innerHTML = suggestions.length ? suggestions.map((sg, i) => `
+      <div class="sugg" data-i="${i}">
+        <label class="row"><input type="checkbox" checked>
+          <b>${esc(sg.channels[0].name)}</b><span class="muted">${esc(sg.channels[0].group)}</span></label>
+        <div class="opts muted">${sg.channels.slice(1).map(ch =>
+          `+ ${esc(ch.original)} <span class="tag">${esc(ch.group)}</span>`).join('<br>')}</div>
+      </div>`).join('') : '<p class="muted">No matching channels found.</p>';
+  });
+});
+$('suggestCancel').onclick = () => $('suggestDialog').close();
+$('suggestApply').onclick = () => run(async () => {
+  const merges = [...document.querySelectorAll('#suggestList .sugg')]
+      .filter(d => d.querySelector('input').checked)
+      .map(d => { const sg = suggestions[Number(d.dataset.i)];
+                  return {into: sg.into, from: sg.channels.slice(1).map(ch => ch.id)}; });
+  if (!merges.length) { toast('Nothing selected'); return; }
+  const r = await api('/api/merges/apply', {merges});
+  $('suggestDialog').close();
+  toast(`Merged ${r.merged} channel(s). Sync to update the TV.`);
+  if (selectedGroup) await selectGroup(selectedGroup);
+});
+
+function selectedIds() {
+  return [...document.querySelectorAll('#chRows tr')].filter(tr => tr.querySelector('input').checked).map(tr => Number(tr.dataset.id));
+}
+function bulk(kind, target) {
+  const ids = selectedIds();
+  if (!ids.length) { toast('Tick some channels first'); $('moveTo').value = ''; return; }
+  if (kind === 'hide') editChannels(ids, {hidden: true});
+  if (kind === 'show') editChannels(ids, {hidden: false});
+  if (kind === 'unlink') editChannels(ids, {guide: null});
+  if (kind === 'move') editChannels(ids, {moveTo: target});
+  if (kind === 'remove') removeFromGroup(ids);
+  if (kind === 'merge') mergeSelected(ids);
+}
+// Sends channels moved into this group back to their own category; that's off the TV unless
+// the category is a group too.
+function removeFromGroup(ids) {
+  const g = state.groups.find(x => x.id === selectedGroup);
+  const what = ids.length === 1 ? (channels.find(c => c.streamId === ids[0]) || {}).displayName : ids.length + ' channels';
+  if (!confirm(`Remove ${what} from ${g.name}? It goes back to its own category.`)) return;
+  editChannels(ids, {remove: true});
+}
+function editChannels(ids, change) {
+  run(async () => {
+    await api('/api/channels', Object.assign({streamIds: ids, group: selectedGroup}, change));
+    toast('Saved. Sync to update the TV.');
+    await selectGroup(selectedGroup);
+  });
+}
+
+// ---- Guide linking ----
+function catchupTag(days) {
+  return days ? `<span class="tag catchup" title="Catch-up: the last ${days} day(s) can be watched again">↺ ${days}d</span>` : '';
+}
+function offsetLabel(minutes) {
+  const sign = minutes < 0 ? '−' : '+', a = Math.abs(minutes);
+  return `${sign}${Math.floor(a / 60)}h${a % 60 ? ' ' + a % 60 + 'm' : ''}`;
+}
+$('linkOffset').onchange = () => {
+  const minutes = Number($('linkOffset').value);
+  linkTargets.forEach(c => c.epgOffset = minutes);
+  editChannels(linkTargets.map(c => c.streamId), {epgOffset: minutes});
+};
+function openLink(targets) {
+  linkTargets = targets;
+  $('linkFor').textContent = targets.length === 1 ? targets[0].displayName : targets.length + ' channels';
+  // Guides that are turned off can't be linked to.
+  const guides = state.guideSources.filter(s => !s.disabled);
+  $('linkSource').innerHTML = guides.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  const current = targets[0].guideSource;
+  if (guides.some(s => s.id === current)) $('linkSource').value = current;
+  $('linkSearch').value = targets[0].displayName;
+  const offsets = [];
+  for (let m = -720; m <= 720; m += 30) offsets.push(m);
+  $('linkOffset').innerHTML = offsets.map(m => `<option value="${m}">${m ? offsetLabel(m) : 'None'}</option>`).join('');
+  $('linkOffset').value = targets.every(c => c.epgOffset === targets[0].epgOffset) ? targets[0].epgOffset || 0 : 0;
+  $('linkDialog').showModal();
+  searchGuide();
+}
+async function searchGuide() {
+  const source = $('linkSource').value, q = $('linkSearch').value;
+  await run(async () => {
+    const r = await api(`/api/guides/channels?source=${encodeURIComponent(source)}&q=${encodeURIComponent(q)}`);
+    $('linkNote').textContent = r.loaded ? (r.matches.length ? '' : 'No matches. Try fewer words.')
+        : 'This guide\'s channel list isn\'t loaded yet. Load it from the Guides tab.';
+    $('linkResults').innerHTML = r.matches.map(m => `<div data-id="${esc(m.id)}">${esc(m.name)} <span class="muted">${esc(m.id)}</span></div>`).join('');
+  });
+}
+$('linkSource').onchange = searchGuide;
+$('linkSearch').oninput = () => { clearTimeout(searchGuide.t); searchGuide.t = setTimeout(searchGuide, 250); };
+$('linkResults').onclick = e => {
+  const d = e.target.closest('div[data-id]'); if (!d) return;
+  $('linkDialog').close();
+  editChannels(linkTargets.map(c => c.streamId), {guide: {source: $('linkSource').value, channel: d.dataset.id}});
+};
+$('linkDefault').onclick = () => { $('linkDialog').close(); editChannels(linkTargets.map(c => c.streamId), {guide: null}); };
+$('linkNone').onclick = () => { $('linkDialog').close(); editChannels(linkTargets.map(c => c.streamId), {guide: {source: 'xtream', channel: ''}}); };
+$('linkCancel').onclick = () => $('linkDialog').close();
+
+// ---- Logos ----
+let logoChannels = [], logoTarget = null;
+const sourceLabel = {m3u: 'M3U', epg: 'EPG', custom: 'Custom'};
+function openLogos() {
+  const sel = $('logoGroup');
+  const current = sel.value || selectedGroup || (state.groups[0] && state.groups[0].id);
+  sel.innerHTML = state.groups.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
+  if (current) { sel.value = current; loadLogos(); }
+  else $('logoTiles').innerHTML = '<p class="muted">Add a group first.</p>';
+}
+let logoGroupShown = null;
+async function loadLogos() {
+  // Reloading the same group keeps the scroll position and ticked tiles.
+  const group = $('logoGroup').value, refresh = group === logoGroupShown;
+  const scrollY = window.scrollY;
+  const ticked = new Set([...document.querySelectorAll('#logoTiles .tile')]
+      .filter(t => t.querySelector('input').checked).map(t => t.dataset.id));
+  if (!refresh) $('logoTiles').innerHTML = '<p class="muted">Loading channels…</p>';
+  await run(async () => {
+    logoChannels = await api('/api/channels?group=' + encodeURIComponent(group));
+    logoGroupShown = group;
+    renderLogos();
+    if (refresh) {
+      document.querySelectorAll('#logoTiles .tile').forEach(t => {
+        if (ticked.has(t.dataset.id)) t.querySelector('input').checked = true;
+      });
+      window.scrollTo(0, scrollY);
+    }
+  });
+}
+function renderLogos() {
+  const q = $('logoFilter').value.toLowerCase();
+  const hideHidden = $('logoHideHidden').checked;
+  $('logoTiles').innerHTML = logoChannels
+      .filter(c => !(hideHidden && c.hidden))
+      .filter(c => !q || c.displayName.toLowerCase().includes(q)).map(c => `
+    <div class="tile" data-id="${c.streamId}">
+      <div class="art" title="Drop an image here, or tap to choose one">
+        ${c.logo ? `<img loading="lazy" src="${esc(c.logo)}" alt="">` : '<span class="muted">No logo</span>'}
+        <span class="hint">${sourceLabel[c.logoSource] || 'M3U'}</span>
+      </div>
+      <label class="row"><input type="checkbox"><span class="tname grow">${esc(c.displayName)}</span></label>
+      <div class="row">
+        <button class="btn" data-logo="m3u" ${c.logoSource === 'm3u' ? 'disabled' : ''}>M3U</button>
+        <button class="btn" data-logo="epg" ${c.guideChannel ? '' : 'disabled title="No guide linked"'}>EPG</button>
+      </div>
+    </div>`).join('') || '<p class="muted">No channels in this group.</p>';
+}
+$('logoGroup').onchange = loadLogos;
+$('logoFilter').oninput = renderLogos;
+$('logoHideHidden').onchange = renderLogos;
+$('logoSelAll').onchange = e => document.querySelectorAll('#logoTiles input[type=checkbox]').forEach(cb => cb.checked = e.target.checked);
+function refreshLogoViews() {
+  if (!$('tab-logos').hidden) return loadLogos();
+  if (selectedGroup) return selectGroup(selectedGroup);
+}
+async function setLogoSource(ids, source, group) {
+  await run(async () => {
+    const r = await api('/api/logos', {streamIds: ids, group: group || $('logoGroup').value, source});
+    toast(source === 'epg' && r.missing
+        ? `${r.updated} set to the guide logo; ${r.missing} have no guide logo (if the guide was loaded earlier, reload its channel list on the Guides tab)`
+        : 'Saved. Sync to update the TV.');
+    await refreshLogoViews();
+  });
+}
+async function uploadLogo(streamId, file) {
+  if (!file || !file.type.startsWith('image/')) { toast("That isn't an image file"); return; }
+  await run(async () => {
+    const res = await fetch('/api/logos/upload?streamId=' + streamId,
+        {method: 'POST', headers: {'Content-Type': file.type}, body: file});
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    toast('Logo uploaded. Sync to update the TV.');
+    await refreshLogoViews();
+  });
+}
+$('logoTiles').addEventListener('click', e => {
+  const tile = e.target.closest('.tile'); if (!tile) return;
+  const id = Number(tile.dataset.id);
+  if (e.target.dataset.logo) setLogoSource([id], e.target.dataset.logo);
+  else if (e.target.closest('.art')) { logoTarget = id; $('logoFile').value = ''; $('logoFile').click(); }
+});
+$('logoFile').onchange = e => { if (logoTarget != null) uploadLogo(logoTarget, e.target.files[0]); };
+$('logoTiles').addEventListener('dragover', e => {
+  const tile = e.target.closest('.tile'); if (!tile) return;
+  e.preventDefault();
+  document.querySelectorAll('.tile.drop').forEach(t => t !== tile && t.classList.remove('drop'));
+  tile.classList.add('drop');
+});
+$('logoTiles').addEventListener('dragleave', e => {
+  const tile = e.target.closest('.tile');
+  if (tile && !tile.contains(e.relatedTarget)) tile.classList.remove('drop');
+});
+$('logoTiles').addEventListener('drop', e => {
+  const tile = e.target.closest('.tile'); if (!tile) return;
+  e.preventDefault(); tile.classList.remove('drop');
+  uploadLogo(Number(tile.dataset.id), e.dataTransfer.files[0]);
+});
+// Dropping outside a tile shouldn't make the browser open the image.
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+document.querySelectorAll('[data-logobulk]').forEach(b => b.onclick = () => {
+  const ids = [...document.querySelectorAll('#logoTiles .tile')].filter(t => t.querySelector('input').checked).map(t => Number(t.dataset.id));
+  if (!ids.length) { toast('Tick some channels first'); return; }
+  setLogoSource(ids, b.dataset.logobulk);
+});
+
+// ---- Guides ----
+function renderGuides() {
+  $('guideList').innerHTML = state.guideSources.map(s => `
+    <div class="row" style="padding:8px 0;border-top:1px solid var(--line)" data-id="${esc(s.id)}">
+      <div class="grow"><div class="cname" ${s.disabled ? 'style="color:var(--muted)"' : ''}>${esc(s.name)}
+          ${s.disabled ? '<span class="tag">off</span>' : ''} <span class="muted" style="font-weight:normal">${guideRefreshed(s)}</span></div>
+        <div class="muted">${s.channels < 0 ? 'Channel list not loaded' : s.channels + ' channels'}${s.url ? ' · ' + esc(s.url) : ''}</div></div>
+      <label class="row muted" title="Off: sync skips this guide and its channels show no programmes"><input type="checkbox" data-act="enabled" ${s.disabled ? '' : 'checked'}> On</label>
+      <button class="btn" data-act="refresh">${s.channels < 0 ? 'Load channels' : 'Reload'}</button>
+      ${s.builtIn ? '' : '<button class="btn danger" data-act="delete">Remove</button>'}
+    </div>`).join('');
+}
+// When sync last read the guide's programmes, and whether a later attempt failed.
+function guideRefreshed(s) {
+  const when = t => {
+    const d = new Date(t), today = new Date().toDateString() === d.toDateString();
+    const time = d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    return today ? 'today ' + time : d.toLocaleDateString([], {day: 'numeric', month: 'short'}) + ' ' + time;
+  };
+  let text = s.refreshed ? 'Refreshed ' + when(s.refreshed) : 'Not refreshed yet';
+  if (s.failed > s.refreshed) text += ` · <span style="color:var(--danger)">failed ${when(s.failed)}</span>`;
+  return text;
+}
+$('guideList').onchange = e => {
+  const row = e.target.closest('[data-id]'); if (!row || e.target.dataset.act !== 'enabled') return;
+  run(async () => {
+    applyState(await api('/api/guides/update', {id: row.dataset.id, disabled: !e.target.checked}));
+    toast(e.target.checked ? 'Guide on. Sync to update the TV.' : 'Guide off. Sync to update the TV.');
+  });
+};
+$('guideList').onclick = e => {
+  const row = e.target.closest('[data-id]'), act = e.target.dataset.act; if (!row || !act) return;
+  const id = row.dataset.id;
+  if (act === 'refresh') run(async () => {
+    e.target.disabled = true; e.target.textContent = 'Loading…';
+    const s = await api('/api/guides/refresh', {id});
+    applyState(s); toast(`Loaded ${s.refreshed.channels} guide channels`);
+  });
+  if (act === 'delete' && confirm('Remove this guide? Channels linked to it go back to the panel guide.')) {
+    run(async () => applyState(await api('/api/guides/delete', {id})));
+  }
+};
+$('addGuide').onclick = () => run(async () => {
+  const btn = $('addGuide'); btn.disabled = true; btn.textContent = 'Loading…';
+  try {
+    applyState(await api('/api/guides', {name: $('guideName').value, url: $('guideUrl').value}));
+    $('guideName').value = ''; $('guideUrl').value = ''; toast('Guide added');
+  } finally { btn.disabled = false; btn.textContent = 'Add and load channels'; }
+});
+
+// ---- Settings ----
+let editingSource = null;
+function renderSources() {
+  const extra = (state.sources || []).filter(x => !x.main);
+  $('sourceList').innerHTML = extra.length ? extra.map(x => `
+    <div class="row" style="padding:8px 0;border-top:1px solid var(--line)" data-index="${x.index}">
+      <div class="grow"><div class="cname">${esc(x.name)}</div>
+        <div class="muted">${esc(x.server)} · ${esc(x.username)}${x.useHls ? ' · HLS' : ''}</div></div>
+      <button class="btn" data-src="edit">Edit</button>
+      <button class="btn danger" data-src="delete">Remove</button>
+    </div>`).join('') : '<p class="muted">Only the main account so far.</p>';
+  fillSourceSelect($('catSource'));
+}
+function resetSourceForm() {
+  editingSource = null;
+  ['srcName', 'srcServer', 'srcUser', 'srcPass'].forEach(id => $(id).value = '');
+  $('srcHls').checked = false; $('srcPass').placeholder = '';
+  $('sourceFormTitle').textContent = 'Add a source';
+  $('srcSave').textContent = 'Add source'; $('srcCancel').hidden = true;
+}
+$('sourceList').onclick = e => {
+  const row = e.target.closest('[data-index]'), act = e.target.dataset.src;
+  if (!row || !act) return;
+  const x = state.sources.find(s => s.index === Number(row.dataset.index));
+  if (act === 'edit') {
+    editingSource = x.index;
+    $('srcName').value = x.name; $('srcServer').value = x.server; $('srcUser').value = x.username;
+    $('srcPass').value = ''; $('srcPass').placeholder = 'Unchanged'; $('srcHls').checked = x.useHls;
+    $('sourceFormTitle').textContent = 'Edit ' + x.name;
+    $('srcSave').textContent = 'Save changes'; $('srcCancel').hidden = false;
+  } else if (act === 'delete' && confirm(`Remove ${x.name}? Its groups and guide links are removed too.`)) {
+    run(async () => { categories = {}; applyState(await api('/api/sources/delete', {index: x.index})); toast('Source removed'); });
+  }
+};
+$('srcCancel').onclick = resetSourceForm;
+$('srcSave').onclick = () => run(async () => {
+  const body = {name: $('srcName').value, server: $('srcServer').value, username: $('srcUser').value,
+                password: $('srcPass').value, useHls: $('srcHls').checked};
+  const btn = $('srcSave'); btn.disabled = true; const label = btn.textContent; btn.textContent = 'Checking login…';
+  try {
+    if (editingSource == null) applyState(await api('/api/sources', body));
+    else applyState(await api('/api/sources/update', Object.assign({index: editingSource}, body)));
+    toast(editingSource == null ? 'Source added' : 'Source saved');
+    categories = {}; resetSourceForm();
+  } finally { btn.disabled = false; if (btn.textContent === 'Checking login…') btn.textContent = label; }
+});
+
+function renderSettings() {
+  const s = state.settings;
+  if (document.activeElement && document.activeElement.closest('#tab-settings')) return;
+  $('setName').value = s.name; $('setServer').value = s.server; $('setUser').value = s.username; $('setPass').value = '';
+  $('setPass').placeholder = s.hasPassword ? 'Unchanged' : 'Password';
+  $('setHls').checked = s.useHls; $('setPrefixes').value = s.prefixes; $('setSuffixes').value = s.suffixes;
+}
+$('saveSettings').onclick = () => run(async () => {
+  const s = await api('/api/settings', {
+    name: $('setName').value, server: $('setServer').value, username: $('setUser').value, password: $('setPass').value,
+    useHls: $('setHls').checked, prefixes: $('setPrefixes').value, suffixes: $('setSuffixes').value});
+  categories = {}; applyState(s);
+  toast(s.accountError ? 'Saved, but: ' + s.accountError : 'Saved. Sync to update the TV.');
+  if (selectedGroup) selectGroup(selectedGroup);
+});
+
+$('downloadBackup').onclick = () => {
+  // A plain navigation lets the browser save the zip under the server's filename.
+  window.location.href = '/api/backup?password=' + ($('backupPassword').checked ? '1' : '0');
+};
+$('restoreBackup').onclick = () => run(async () => {
+  const file = $('restoreFile').files[0];
+  if (!file) { toast('Choose a backup file first'); return; }
+  if (!confirm('Restoring replaces the account, groups, channel edits, guides and logos on this device, then syncs. Continue?')) return;
+  const btn = $('restoreBackup'); btn.disabled = true; btn.textContent = 'Restoring…';
+  try {
+    const res = await fetch('/api/restore', {method: 'POST',
+        headers: {'Content-Type': 'application/zip'}, body: file});
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    categories = {}; selectedGroup = null;
+    $('channelPanel').innerHTML = '<p class="muted">Pick a group to see its channels.</p>';
+    applyState(data);
+    const r = data.restored;
+    toast(`Restored ${r.logos} logo(s) and ${r.guides} guide list(s)` +
+        (r.passwordRestored ? '' : '; the backup had no password, so the current one was kept') +
+        '. Syncing now.');
+    $('restoreFile').value = '';
+  } finally { btn.disabled = false; btn.textContent = 'Restore'; }
+});
+$('syncBtn').onclick = () => run(async () => {
+  await api('/api/sync', {}); toast('Sync started');
+  state.sync.running = true; state.sync.status = 'Syncing…'; renderSync();
+});
+setInterval(() => run(async () => { const s = await api('/api/state'); state.sync = s.sync; renderSync(); }), 4000);
+
+run(async () => applyState(await api('/api/state')));
+</script>
+</body>
+</html>
