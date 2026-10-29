@@ -9,3 +9,6 @@ manifest-merger-release-report.txt
 *.iml
 *#
 pseudoLocalizer.log
+# Release signing: kept outside the repo
+keystore.properties
+*.jks

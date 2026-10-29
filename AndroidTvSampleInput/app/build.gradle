@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Release signing: keystore.properties next to settings.gradle (storeFile, keyAlias,
+// storePassword), never committed. Without it, release builds use the debug key.
+def signingProps = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) signingFile.withInputStream { signingProps.load(it) }
+
 android {
     namespace 'com.example.android.sampletvinput'
 
@@ -12,9 +18,21 @@ android {
         versionName "1.1"
     }
 
+    signingConfigs {
+        if (signingProps.getProperty('storeFile')) {
+            release {
+                storeFile file(signingProps.getProperty('storeFile'))
+                storePassword signingProps.getProperty('storePassword')
+                keyAlias signingProps.getProperty('keyAlias')
+                keyPassword signingProps.getProperty('storePassword')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.findByName('release') ?: signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
